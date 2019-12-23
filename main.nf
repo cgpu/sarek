@@ -1171,8 +1171,7 @@ bamApplyBQSR = bamApplyBQSR.dump(tag:'BAM + BAI + RECAL TABLE + INT')
 // STEP 4: RECALIBRATING
 
 process ApplyBQSRSpark {
-    label 'memory_singleCPU_2_task'
-    label 'cpus_2'
+
 
     tag {idPatient + "-" + idSample + "-" + intervalBed.baseName}
 
@@ -1196,8 +1195,8 @@ process ApplyBQSRSpark {
         --output ${prefix}${idSample}.recal.bam \
         ${intervalsOptions} \
         --bqsr-recal-file ${recalibrationReport} \
-        --verbosity DEBUG \
-        --spark-runner LOCAL --spark-master local[${task.cpus}] &> applyBQSRspark.log.txt
+        --verbosity INFO \
+        --spark-runner LOCAL --spark-master local[${task.cpus}]
     """
 }
 
