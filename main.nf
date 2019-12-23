@@ -975,7 +975,7 @@ process MarkDuplicatesSpark {
         --input ${idSample}.bam \
         --output ${idSample}.md.bam \
         --tmp-dir . \
-        --verbosity DEBUG \
+        --verbosity INFO \
         --create-output-bam-index true \
         --spark-runner LOCAL --spark-master local[${task.cpus}]
     """
