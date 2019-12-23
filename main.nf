@@ -1188,7 +1188,7 @@ process ApplyBQSRSpark {
     prefix = params.no_intervals ? "" : "${intervalBed.baseName}_"
     intervalsOptions = params.no_intervals ? "" : "-L ${intervalBed}"
     """
-    gatk --java-options -Xmx${task.memory.toGiga()}g \
+    gatk  \
         ApplyBQSRSpark \
         --reference ${fasta} \
         --input ${bam} \
