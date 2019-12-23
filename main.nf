@@ -1050,7 +1050,6 @@ process SentieonDedup {
 // STEP 3: CREATING RECALIBRATION TABLES
 
 process BaseRecalibratorSpark {
-    label 'cpus_1'
 
     tag {idPatient + "-" + idSample + "-" + intervalBed.baseName}
     echo true
