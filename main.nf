@@ -947,8 +947,6 @@ process IndexBamFile {
 // STEP 2: MARKING DUPLICATES
 
 process MarkDuplicatesSpark {
-    label 'cpus_max'
-    label 'memory_max'
 
     tag {idPatient + "-" + idSample}
     echo true
