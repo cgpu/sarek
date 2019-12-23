@@ -1052,7 +1052,7 @@ process SentieonDedup {
 process BaseRecalibratorSpark {
     label 'cpus_1'
 
-    tag {idPatient + "-" + idSample + "-" + intervalBed.simpleName}
+    tag {idPatient + "-" + idSample + "-" + intervalBed.baseName}
     echo true
 
     input:
