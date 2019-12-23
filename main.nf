@@ -970,7 +970,8 @@ process MarkDuplicatesSpark {
     script:
     markdup_java_options = task.memory.toGiga() > 8 ? params.markdup_java_options : "\"-Xms" +  (task.memory.toGiga() / 2).trunc() + "g -Xmx" + (task.memory.toGiga() - 1) + "g\""
     """
-    gatk MarkDuplicatesSpark \
+    gatk ${markdup_java_options} \
+        MarkDuplicatesSpark \
         --input ${idSample}.bam \
         --output ${idSample}.md.bam \
         --tmp-dir . \
