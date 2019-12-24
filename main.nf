@@ -793,17 +793,28 @@ process MapReads {
     extra = status == 1 ? "-B 3" : ""
     convertToFastq = hasExtension(inputFile1, "bam") ? "gatk --java-options -Xmx${task.memory.toGiga()}g SamToFastq --INPUT=${inputFile1} --FASTQ=/dev/stdout --INTERLEAVE=true --NON_PF=true | \\" : ""
     input = hasExtension(inputFile1, "bam") ? "-p /dev/stdin - 2> >(tee ${inputFile1}.bwa.stderr.log >&2)" : "${inputFile1} ${inputFile2}"
-    // Pseudo-code: Add soft-coded memory allocation to the two tools:
-    bwa_memory  = task.memory.toGiga() * 0.60
-    sort_memory = task.memory.toGiga() * 0.40
-    // Pseudo-code: Add soft-coded memory allocation to the two tools:
-    bwa_cpus  = (task.cpus * 0.60).toInteger()
-    sort_cpus = (task.cpus * 0.40).toInteger()
+    // Pseudo-code: Add soft-coded memory allocation to the two tools, bwa mem | smatools sort
+    // Request only one from the user, the other is implicit: 1 - defined
+    bwa_cpus_fraction   = params.bwa_cpus_fraction
+    bwa_memory_fraction = params.bwa_memory_percentage
     """
+        # Add modifed bc function that accepts round decimals
+        bcr()
+        {
+            echo "scale=$2+1;t=$1;scale-=1;(t*10^scale+((t>0)-(t<0))/2)/10^scale" | bc -l
+        }
+
+        # Define the calculation inside single quotes; the round decimals after (for integer, 0 decimals)
+        bwa_task_cpus=\$(bcr    '${task.cpus}            * ${bwa_cpus_fraction}' 0)
+        sort_task_cpus=\$(bcr   '${task.cpus}            - \${bwa_task_cpus}' 0)
+
+        bwa_task_memory=\$(bcr  '${task.memory.toGiga()} * ${bwa_memory_fraction}' 0)
+        sort_task_memory=\$(bcr '${task.memory.toGiga()} - \${bwa_task_memory}' 0)
+
         ${convertToFastq}
-        bwa mem -K 100000000 -R \"${readGroup}\" ${extra} -t ${task.cpus} -M ${fasta} \
+        bwa mem -K 100000000 -R \"${readGroup}\" ${extra} -t \${bwa_task_cpus} -M ${fasta} \
         ${input} | \
-        samtools sort --threads ${task.cpus} -m 2G - > ${idSample}_${idRun}.bam
+        samtools sort --threads \${sort_task_cpus} -m '\${sort_task_memory}'G - > ${idSample}_${idRun}.bam
     """
 }
 
