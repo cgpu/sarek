@@ -969,16 +969,13 @@ process MarkDuplicatesSpark {
 
     script:
     markdup_java_options = task.memory.toGiga() > 8 ? params.markdup_java_options : "\"-Xms" +  (task.memory.toGiga() / 2).trunc() + "g -Xmx" + (task.memory.toGiga() - 1) + "g\""
-    markdup_java_options_pgpuk = "--java-options -Xmx${task.memory.toGiga() - 15}g"
     """
-    gatk ${markdup_java_options_pgpuk} \
+    gatk --java-options -Xmx${task.memory.toGiga() - 15}g \
         MarkDuplicatesSpark \
-        --input ${idSample}.bam \
-        --metrics-file ${idSample}.bam.metrics \
-        --tmp-dir . \
-        --verbosity ERROR \
-        --create-output-bam-index true \
-        --output ${idSample}.md.bam \
+        -I ${idSample}.bam \
+        -O ${idSample}.md.bam \
+        -M ${idSample}.bam.metrics \
+        -OBI true \
         --spark-runner LOCAL --spark-master local[${task.cpus}]
     """
 }
