@@ -805,10 +805,10 @@ process MapReads {
         }
 
         # Define the calculation inside single quotes; the round decimals after (for integer, 0 decimals)
-        bwa_task_cpus=\$(bcr    '${task.cpus}            * ${bwa_cpus_fraction}' 0)
+        bwa_task_cpus=\$(bcr    '${task.cpus}            * \${bwa_cpus_fraction}' 0)
         sort_task_cpus=\$(bcr   '${task.cpus}            - \${bwa_task_cpus}' 0)
 
-        bwa_task_memory=\$(bcr  '${task.memory.toGiga()} * ${bwa_memory_fraction}' 0)
+        bwa_task_memory=\$(bcr  '${task.memory.toGiga()} * \${bwa_memory_fraction}' 0)
         sort_task_memory=\$(bcr '${task.memory.toGiga()} - \${bwa_task_memory}' 0)
 
         ${convertToFastq}
