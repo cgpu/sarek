@@ -795,8 +795,8 @@ process MapReads {
     input = hasExtension(inputFile1, "bam") ? "-p /dev/stdin - 2> >(tee ${inputFile1}.bwa.stderr.log >&2)" : "${inputFile1} ${inputFile2}"
     // Pseudo-code: Add soft-coded memory allocation to the two tools, bwa mem | smatools sort
     // Request only one from the user, the other is implicit: 1 - defined
-    bwa_cpus_fraction   = params.bwa_cpus_fraction
-    bwa_memory_fraction = params.bwa_memory_percentage
+    bwa_cpus_fraction   = ${params.bwa_cpus_fraction}
+    bwa_memory_fraction = ${params.bwa_memory_fraction}
     """
         # Add modifed bc function that accepts round decimals
         bcr()
