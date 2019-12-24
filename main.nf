@@ -801,7 +801,7 @@ process MapReads {
         # Add modifed bc function that accepts round decimals
         bcr()
         {
-            echo "scale=$2+1;t=$1;scale-=1;(t*10^scale+((t>0)-(t<0))/2)/10^scale" | bc -l
+            echo "scale=\$2+1;t=\$1;scale-=1;(t*10^scale+((t>0)-(t<0))/2)/10^scale" | bc -l
         }
 
         # Define the calculation inside single quotes; the round decimals after (for integer, 0 decimals)
