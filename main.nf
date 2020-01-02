@@ -795,29 +795,13 @@ process MapReads {
     input = hasExtension(inputFile1, "bam") ? "-p /dev/stdin - 2> >(tee ${inputFile1}.bwa.stderr.log >&2)" : "${inputFile1} ${inputFile2}"
     // Pseudo-code: Add soft-coded memory allocation to the two tools, bwa mem | smatools sort
     // Request only one from the user, the other is implicit: 1 - defined
-    bwa_cpus_fraction   = ${params.bwa_cpus_fraction.toInteger()}
-    bwa_memory_fraction = ${params.bwa_memory_fraction.toInteger()}
+    bwa_cpus  = Math.floor ( params.bwa_cpus_fraction * task.cpus) as Integer
+    sort_cpus = task.cpus - bwa_cpus
     """
-        bwa_cpus_fraction   = ${params.bwa_cpus_fraction.toInteger()}
-        bwa_memory_fraction = ${params.bwa_memory_fraction.toInteger()}
-
-        # Add modifed bc function that accepts round decimals
-        bcr()
-        {
-            echo "scale=\$2+1;t=\$1;scale-=1;(t*10^scale+((t>0)-(t<0))/2)/10^scale" | bc -l
-        }
-
-        # Define the calculation inside single quotes; the round decimals after (for integer, 0 decimals)
-        bwa_task_cpus=\$(bcr    '${task.cpus}            * \${bwa_cpus_fraction}' 0)
-        sort_task_cpus=\$(bcr   '${task.cpus}            - \${bwa_task_cpus}' 0)
-
-        bwa_task_memory=\$(bcr  '${task.memory.toGiga()} * \${bwa_memory_fraction}' 0)
-        sort_task_memory=\$(bcr '${task.memory.toGiga()} - \${bwa_task_memory}' 0)
-
         ${convertToFastq}
-        bwa mem -K 100000000 -R \"${readGroup}\" ${extra} -t \${bwa_task_cpus} -M ${fasta} \
+        bwa mem -K 100000000 -R \"${readGroup}\" ${extra} -t ${bwa_cpus} -M ${fasta} \
         ${input} | \
-        samtools sort --threads \${sort_task_cpus} -m '\${sort_task_memory}'G - > ${idSample}_${idRun}.bam
+        samtools sort --threads ${sort_cpus}  - > ${idSample}_${idRun}.bam
     """
 }
 
