@@ -975,12 +975,11 @@ process MarkDuplicatesSpark {
     script:
     markdup_java_options = task.memory.toGiga() > 8 ? params.markdup_java_options : "\"-Xms" +  (task.memory.toGiga() / 2).trunc() + "g -Xmx" + (task.memory.toGiga() - 1) + "g\""
     """
-    gatk --java-options -Xmx${task.memory.toGiga() - 15}g \
+    gatk --java-options -Xmx8g \
         MarkDuplicatesSpark \
         -I ${idSample}.bam \
         -O ${idSample}.md.bam \
         -M ${idSample}.bam.metrics \
-        -OBI true \
         --spark-runner LOCAL --spark-master local[${task.cpus}]
     """
 }
