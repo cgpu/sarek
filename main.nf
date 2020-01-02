@@ -967,7 +967,7 @@ process MarkDuplicatesSpark {
         set idPatient, idSample, file("${idSample}.bam") from mergedBam
 
     output:
-        set idPatient, idSample, file("${idSample}.md.bam"), file("${idSample}.md.bai") into duplicateMarkedBams
+        set idPatient, idSample, file("${idSample}.md.bam"), file("${idSample}.md.bam.bai") into duplicateMarkedBams
         file ("${idSample}.bam.metrics") into markDuplicatesReport
 
     when: params.knownIndels
