@@ -768,6 +768,7 @@ else inputPairReadsSentieon.close()
 process MapReads {
     label 'cpus_max'
     label 'memory_max'
+    echo true
 
     tag {idPatient + "-" + idRun}
 
@@ -799,6 +800,9 @@ process MapReads {
     bwa_cpus  = Math.floor ( params.bwa_cpus_fraction * task.cpus) as Integer
     sort_cpus = task.cpus - bwa_cpus
     """
+    echo 'bwa_cpus:'  ${bwa_cpus}
+    echo 'sort_cpus:' ${sort_cpus}
+
         ${convertToFastq}
         bwa mem -K 100000000 -R \"${readGroup}\" ${extra} -t ${bwa_cpus} -M ${fasta} \
         ${input} | \
