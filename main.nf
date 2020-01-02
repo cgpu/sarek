@@ -767,6 +767,7 @@ else inputPairReadsSentieon.close()
 
 process MapReads {
     label 'cpus_max'
+    label 'memory_max'
 
     tag {idPatient + "-" + idRun}
 
@@ -875,7 +876,7 @@ singleBamSentieon = singleBamSentieon.dump(tag:'Single BAM')
 multipleBam = multipleBam.mix(multipleBamSentieon)
 
 process MergeBamMapped {
-    label 'cpus_8'
+    label 'med_resources'
 
     tag {idPatient + "-" + idSample}
 
@@ -904,7 +905,7 @@ mergedBam = mergedBam.dump(tag:'BAMs for MD')
 mergedBamForSentieon = mergedBamForSentieon.dump(tag:'Sentieon BAMs to Index')
 
 process IndexBamMergedForSentieon {
-    label 'cpus_8'
+    label 'med_resources'
 
     tag {idPatient + "-" + idSample}
 
@@ -923,7 +924,7 @@ process IndexBamMergedForSentieon {
 (mergedBam, mergedBamToIndex) = mergedBam.into(2)
 
 process IndexBamFile {
-    label 'cpus_8'
+    label 'med_resources'
 
     tag {idPatient + "-" + idSample}
 
@@ -945,9 +946,11 @@ process IndexBamFile {
 // STEP 2: MARKING DUPLICATES
 
 process MarkDuplicatesSpark {
+    label 'cpus_max'
+    label 'memory_max'
 
     tag {idPatient + "-" + idSample}
-    echo true
+
 
     publishDir params.outdir, mode: params.publishDirMode,
         saveAs: {
@@ -1047,6 +1050,9 @@ process SentieonDedup {
 // STEP 3: CREATING RECALIBRATION TABLES
 
 process BaseRecalibratorSpark {
+
+    label = 'med_resources'
+
 
     tag {idPatient + "-" + idSample + "-" + intervalBed.baseName}
     echo true
@@ -1169,6 +1175,8 @@ bamApplyBQSR = bamApplyBQSR.dump(tag:'BAM + BAI + RECAL TABLE + INT')
 
 process ApplyBQSRSpark {
 
+    label 'memory_singleCPU_2_task'
+    label 'cpus_2'
 
     tag {idPatient + "-" + idSample + "-" + intervalBed.baseName}
 
@@ -1291,7 +1299,7 @@ bamRecalSentieonSampleTSV
 // STEP 4.5.1: MERGING THE RECALIBRATED BAM FILES
 
 process MergeBamRecal {
-    label 'cpus_8'
+    label 'med_resources'
 
     tag {idPatient + "-" + idSample}
 
@@ -1325,9 +1333,12 @@ Channel.fromPath(params.vepFile)
 // STEP 4.5.2: RUNNING GenomeChronicler FOR THE RECALIBRATED BAM FILES
 // TODO: Update this when there is a different VEP html report for each bam
 process RunGenomeChronicler {
+
+  label 'cpus_max'
+  label 'memory_max'
+
   tag "$bam"
   publishDir "$params.outdir/GenomeChronicler", mode: 'copy'
-  echo true
 
   input:
   file(bam) from bamGenomeChronicler
@@ -1352,7 +1363,7 @@ process RunGenomeChronicler {
 // STEP 4.5': INDEXING THE RECALIBRATED BAM FILES
 
 process IndexBamRecal {
-    label 'cpus_8'
+    label 'med_resources'
 
     tag {idPatient + "-" + idSample}
 
@@ -1431,7 +1442,7 @@ bamBamQC = bamMappedBamQC.mix(bamRecalBamQC)
 
 process BamQC {
     label 'memory_max'
-    label 'cpus_16'
+    label 'cpus_max'
 
     tag {idPatient + "-" + idSample}
 
@@ -1497,8 +1508,9 @@ bamHaplotypeCaller = bamRecalAllTemp.combine(intHaplotypeCaller)
 // STEP GATK HAPLOTYPECALLER.1
 
 process HaplotypeCaller {
-    label 'memory_singleCPU_task_sq'
-    label 'cpus_2'
+
+    label 'forks_max'
+    label 'cpus_1'
 
     tag {idSample + "-" + intervalBed.baseName}
 
@@ -1837,8 +1849,11 @@ bamMpileup = bamMpileup.spread(intMpileup)
 // STEP FREEBAYES
 
 process FreeBayes {
-    tag {idSampleTumor + "_vs_" + idSampleNormal + "-" + intervalBed.baseName}
+
+    label 'forks_max'
     label 'cpus_1'
+
+    tag {idSampleTumor + "_vs_" + idSampleNormal + "-" + intervalBed.baseName}
 
     input:
         set idPatient, idSampleNormal, file(bamNormal), file(baiNormal), idSampleTumor, file(bamTumor), file(baiTumor), file(intervalBed) from pairBamFreeBayes
@@ -1874,7 +1889,10 @@ vcfFreeBayes = vcfFreeBayes.groupTuple(by:[0,1,2])
 
 process Mutect2 {
     tag {idSampleTumor + "_vs_" + idSampleNormal + "-" + intervalBed.baseName}
+
+    label 'forks_max'
     label 'cpus_1'
+
 
     input:
         set idPatient, idSampleNormal, file(bamNormal), file(baiNormal), idSampleTumor, file(bamTumor), file(baiTumor), file(intervalBed) from pairBamMutect2
@@ -1964,7 +1982,7 @@ vcfConcatenateVCFs = mutect2Output.mix(vcfFreeBayes, vcfGenotypeGVCFs, gvcfHaplo
 vcfConcatenateVCFs = vcfConcatenateVCFs.dump(tag:'VCF to merge')
 
 process ConcatVCF {
-    label 'cpus_8'
+    label 'med_resources'
 
     tag {variantCaller + "-" + idSample}
 
@@ -2001,6 +2019,8 @@ vcfConcatenated = vcfConcatenated.dump(tag:'VCF')
 
 process PileupSummariesForMutect2 {
     tag {idSampleTumor + "_vs_" + idSampleNormal + "_" + intervalBed.baseName }
+
+    label 'forks_max'
     label 'cpus_1'
 
     input:
@@ -2032,6 +2052,8 @@ pileupSummaries = pileupSummaries.groupTuple(by:[0,1])
 // STEP GATK MUTECT2.4 - MERGING PILEUP SUMMARIES
 
 process MergePileupSummaries {
+
+    label 'forks_max'
     label 'cpus_1'
 
     tag {idPatient + "_" + idSampleTumor}
@@ -2060,6 +2082,8 @@ process MergePileupSummaries {
 // STEP GATK MUTECT2.5 - CALCULATING CONTAMINATION
 
 process CalculateContamination {
+
+    label 'forks_max'
     label 'cpus_1'
 
     tag {idSampleTumor + "_vs_" + idSampleNormal}
@@ -2088,6 +2112,8 @@ process CalculateContamination {
 // STEP GATK MUTECT2.6 - FILTERING CALLS
 
 process FilterMutect2Calls {
+
+    label 'forks_max'
     label 'cpus_1'
 
     tag {idSampleTN}
@@ -2685,6 +2711,8 @@ vcfKeep = Channel.empty().mix(
 // STEP VCF.QC
 
 process BcftoolsStats {
+
+    label 'forks_max'
     label 'cpus_1'
 
     tag {"${variantCaller} - ${vcf}"}
@@ -2708,6 +2736,8 @@ process BcftoolsStats {
 bcftoolsReport = bcftoolsReport.dump(tag:'BCFTools')
 
 process Vcftools {
+
+    label 'forks_max'
     label 'cpus_1'
 
     tag {"${variantCaller} - ${vcf}"}
@@ -2868,7 +2898,8 @@ compressVCFsnpEffOut = compressVCFsnpEffOut.dump(tag:'VCF')
 
 process VEP {
     label 'VEP'
-    label 'cpus_4'
+    label 'med_resources'
+
     echo true
     tag {"${idSample} - ${variantCaller} - ${vcf}"}
 
@@ -2933,7 +2964,7 @@ vepReport = vepReport.dump(tag:'VEP')
 
 process VEPmerge {
     label 'VEP'
-    label 'cpus_4'
+    label 'med_resources'
 
     tag {"${idSample} - ${variantCaller} - ${vcf}"}
 
@@ -3024,6 +3055,10 @@ compressVCFOutVEP = compressVCFOutVEP.dump(tag:'VCF')
 // STEP MULTIQC
 
 process MultiQC {
+
+    label 'cpus_max'
+    label 'memory_max'
+
     publishDir "${params.outdir}/MultiQC", mode: params.publishDirMode
 
     input:
