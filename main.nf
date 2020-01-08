@@ -949,7 +949,7 @@ process IndexBamFile {
 
 // STEP 2: MARKING DUPLICATES
 
-process MarkDuplicatesSpark {
+process MarkDuplicates {
     label 'cpus_max'
     label 'memory_max'
 
@@ -967,7 +967,7 @@ process MarkDuplicatesSpark {
         set idPatient, idSample, file("${idSample}.bam") from mergedBam
 
     output:
-        set idPatient, idSample, file("${idSample}.md.bam"), file("${idSample}.md.bam.bai") into duplicateMarkedBams
+        set idPatient, idSample, file("${idSample}.md.bam"), file("${idSample}.md.bai") into duplicateMarkedBams
         file ("${idSample}.bam.metrics") into markDuplicatesReport
 
     when: params.knownIndels
@@ -975,13 +975,16 @@ process MarkDuplicatesSpark {
     script:
     markdup_java_options = task.memory.toGiga() > 8 ? params.markdup_java_options : "\"-Xms" +  (task.memory.toGiga() / 2).trunc() + "g -Xmx" + (task.memory.toGiga() - 1) + "g\""
     """
-    gatk --java-options -Xmx8g \
-        MarkDuplicatesSpark \
-        -I ${idSample}.bam \
-        -O ${idSample}.md.bam \
-        -M ${idSample}.bam.metrics \
-        --spark-runner LOCAL --spark-master local[${task.cpus}]
-    """
+    gatk --java-options ${markdup_java_options} \
+        MarkDuplicates \
+        --MAX_RECORDS_IN_RAM 50000 \
+        --INPUT ${idSample}.bam \
+        --METRICS_FILE ${idSample}.bam.metrics \
+        --TMP_DIR . \
+        --ASSUME_SORT_ORDER coordinate \
+        --CREATE_INDEX true \
+        --OUTPUT ${idSample}.md.bam
+        """
 }
 
 if ('markduplicates' in skipQC) markDuplicatesReport.close()
@@ -1052,10 +1055,8 @@ process SentieonDedup {
 
 // STEP 3: CREATING RECALIBRATION TABLES
 
-process BaseRecalibratorSpark {
-
-    label = 'med_resources'
-
+process BaseRecalibrator {
+    label 'med_resources'
 
     tag {idPatient + "-" + idSample + "-" + intervalBed.baseName}
     echo true
@@ -1084,16 +1085,15 @@ process BaseRecalibratorSpark {
     // TODO: --use-original-qualities ???
     """
     gatk --java-options -Xmx${task.memory.toGiga()}g \
-    BaseRecalibratorSpark \
-        --input ${bam} \
-        --output ${prefix}${idSample}.recal.table \
-        --tmp-dir . \
-        --reference ${fasta} \
+        BaseRecalibrator \
+        -I ${bam} \
+        -O ${prefix}${idSample}.recal.table \
+        --tmp-dir /tmp \
+        -R ${fasta} \
         ${intervalsOptions} \
         ${dbsnpOptions} \
         ${knownOptions} \
-        --verbosity INFO \
-        --spark-runner LOCAL --spark-master local[${task.cpus}]
+        --verbosity INFO
     """
 }
 
@@ -1176,7 +1176,7 @@ bamApplyBQSR = bamApplyBQSR.dump(tag:'BAM + BAI + RECAL TABLE + INT')
 
 // STEP 4: RECALIBRATING
 
-process ApplyBQSRSpark {
+process ApplyBQSR {
 
     label 'memory_singleCPU_2_task'
     label 'cpus_2'
@@ -1196,15 +1196,13 @@ process ApplyBQSRSpark {
     prefix = params.no_intervals ? "" : "${intervalBed.baseName}_"
     intervalsOptions = params.no_intervals ? "" : "-L ${intervalBed}"
     """
-    gatk  \
-        ApplyBQSRSpark \
-        --reference ${fasta} \
+    gatk --java-options -Xmx${task.memory.toGiga()}g \
+        ApplyBQSR \
+        -R ${fasta} \
         --input ${bam} \
         --output ${prefix}${idSample}.recal.bam \
         ${intervalsOptions} \
-        --bqsr-recal-file ${recalibrationReport} \
-        --verbosity INFO \
-        --spark-runner LOCAL --spark-master local[${task.cpus}]
+        --bqsr-recal-file ${recalibrationReport}
     """
 }
 
