@@ -806,7 +806,12 @@ process MapReads {
         ${convertToFastq}
         bwa mem -K 100000000 -R \"${readGroup}\" ${extra} -t ${bwa_cpus} -M ${fasta} \
         ${input} | \
-        samtools sort --threads ${sort_cpus}  - > ${idSample}_${idRun}.bam
+        samtools view \
+        --threads $task.cpus \
+        -h \
+        -b \
+        -o ${idSample}_${idRun}.bam \
+        -
     """
 }
 
