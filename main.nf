@@ -804,14 +804,9 @@ process MapReads {
     echo 'sort_cpus:' ${sort_cpus}
 
         ${convertToFastq}
-        bwa mem -K 100000000 -R \"${readGroup}\" ${extra} -t ${bwa_cpus} -M ${fasta} \
+        bwa mem -K 100000000 -R \"${readGroup}\" ${extra} -t ${task.cpus} -M ${fasta} \
         ${input} | \
-        samtools view \
-        --threads $task.cpus \
-        -h \
-        -b \
-        -o ${idSample}_${idRun}.bam \
-        -
+        samtools sort --threads ${task.cpus} - > ${idSample}_${idRun}.bam
     """
 }
 
@@ -986,7 +981,7 @@ process MarkDuplicates {
         --INPUT ${idSample}.bam \
         --METRICS_FILE ${idSample}.bam.metrics \
         --TMP_DIR . \
-        --ASSUME_SORT_ORDER unsorted \
+        --ASSUME_SORT_ORDER coordinate \
         --CREATE_INDEX true \
         --OUTPUT ${idSample}.md.bam
         """
