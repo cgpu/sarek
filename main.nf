@@ -800,13 +800,10 @@ process MapReads {
     bwa_cpus  = Math.floor ( params.bwa_cpus_fraction * task.cpus) as Integer
     sort_cpus = task.cpus - bwa_cpus
     """
-    echo 'bwa_cpus:'  ${bwa_cpus}
-    echo 'sort_cpus:' ${sort_cpus}
-
         ${convertToFastq}
-        bwa mem -K 100000000 -R \"${readGroup}\" ${extra} -t ${task.cpus} -M ${fasta} \
-        ${input} | \
-        samtools sort --threads ${task.cpus} - > ${idSample}_${idRun}.bam
+        bwa mem -K 100000000 -R \"${readGroup}\" ${extra} -t ${task.cpus} -M ${fasta} ${input} > tmp.sam
+        samtools view --threads ${task.cpus} -S -b tmp.sam > unsorted.bam && rm tmp.sam
+        samtools sort --threads ${task.cpus} unsorted.bam -o ${idSample}_${idRun}.bam && rm unsorted.bam
     """
 }
 
