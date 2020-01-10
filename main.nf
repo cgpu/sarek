@@ -51,7 +51,7 @@ def helpMessage() {
                                     Available: Mapping, Recalibrate, VariantCalling, Annotate
                                     Default: Mapping
         --tools                     Specify tools to use for variant calling:
-                                    Available: ASCAT, ControlFREEC, FreeBayes, HaplotypeCaller
+                                    Available: ASCAT, ControlFREEC, FreeBayes, HaplotypeCaller, GenomeChronicler
                                     Manta, mpileup, Mutect2, Strelka, TIDDIT
                                     and/or for annotation:
                                     snpEff, VEP, merge
@@ -797,14 +797,14 @@ process MapReads {
     input = hasExtension(inputFile1, "bam") ? "-p /dev/stdin - 2> >(tee ${inputFile1}.bwa.stderr.log >&2)" : "${inputFile1} ${inputFile2}"
     // Pseudo-code: Add soft-coded memory allocation to the two tools, bwa mem | smatools sort
     // Request only one from the user, the other is implicit: 1 - defined
-    bwa_cpus  = Math.floor ( params.bwa_cpus_fraction * task.cpus) as Integer
-    sort_cpus = task.cpus - bwa_cpus
+    bwa_cpus  = params.bwa_cpus  ? params.bwa_cpus  : Math.floor ( params.bwa_cpus_fraction * task.cpus) as Integer
+    sort_cpus = params.sort_cpus ? params.sort_cpus : task.cpus - bwa_cpus
     """
     echo 'bwa_cpus:'  ${bwa_cpus}
     echo 'sort_cpus:' ${sort_cpus}
 
         ${convertToFastq}
-        bwa mem -K 100000000 -R \"${readGroup}\" ${extra} -t ${bwa_cpus} -M ${fasta} \
+        bwa mem -k 23 -K 100000000 -R \"${readGroup}\" ${extra} -t ${bwa_cpus} -M ${fasta} \
         ${input} | \
         samtools sort --threads ${sort_cpus}  - > ${idSample}_${idRun}.bam
     """
@@ -1058,7 +1058,6 @@ process BaseRecalibratorSpark {
 
 
     tag {idPatient + "-" + idSample + "-" + intervalBed.baseName}
-    echo true
 
     input:
         set idPatient, idSample, file(bam), file(bai), file(intervalBed) from bamBaseRecalibrator
@@ -1349,6 +1348,8 @@ process RunGenomeChronicler {
 
   output:
   file("results_${bam.simpleName}") into chronicler_results
+
+  when: 'genomechronicler' in tools
 
   script:
   
@@ -3356,7 +3357,8 @@ def defineToolList() {
         'strelka',
         'tiddit',
         'tnscope',
-        'vep'
+        'vep',
+        'genomechronicler'
     ]
 }
 
