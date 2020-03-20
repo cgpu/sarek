@@ -2,6 +2,7 @@
 
 > **An open-source analysis pipeline to detect germline or somatic variants from whole genome or targeted sequencing**
 
+[![CloudOS link](https://github.com/lifebit-ai/jax-jupyter/blob/master/img/CloudOS-link-0098fe.svg)](https://cloudos.lifebit.ai/public/jobs/5e71472e92ba0f01035c6d30)
 [![Nextflow](https://img.shields.io/badge/nextflow-%E2%89%A519.10.0-brightgreen.svg)](https://www.nextflow.io/)
 [![nf-core](https://img.shields.io/badge/nf--core-pipeline-brightgreen.svg)](https://nf-co.re/)
 [![DOI](https://zenodo.org/badge/184289291.svg)](https://zenodo.org/badge/latestdoi/184289291)
